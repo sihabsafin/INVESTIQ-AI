@@ -182,42 +182,25 @@ def render_score_hero(result: dict) -> None:
     verdict = result.get("one_line_verdict", "")
     color = get_score_color(score)
 
-    # Centered wrapper
-    st.markdown(f"""
-    <div style="
-        background: #0D1B2E;
-        border: 1px solid #1A2F4A;
-        border-radius: 16px;
-        padding: 2rem 1.5rem 1rem 1.5rem;
-        text-align: center;
-        position: relative;
-        overflow: hidden;
-    ">
-        <!-- subtle glow behind gauge -->
-        <div style="
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 300px; height: 300px;
-            background: radial-gradient(circle, {get_score_glow(score)} 0%, transparent 70%);
-            pointer-events: none;
-        "></div>
+    # ── Label above gauge (no unclosed div) ───────────────────────────────────
+    st.markdown(
+        '<div style="text-align:center; position:relative;">'
+        '<div style="'
+        '    font-size:0.65rem;'
+        '    color:#3A4F6A;'
+        '    text-transform:uppercase;'
+        '    letter-spacing:0.18em;'
+        '    font-weight:600;'
+        '    margin-bottom:0.5rem;'
+        '">INVESTMENT SCORE</div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
-        <div style="
-            font-size: 0.65rem;
-            color: #3A4F6A;
-            text-transform: uppercase;
-            letter-spacing: 0.18em;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        ">INVESTMENT SCORE</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Gauge chart
+    # ── Gauge chart ───────────────────────────────────────────────────────────
     render_gauge(score)
 
-    # Recommendation + Confidence row
+    # ── Recommendation pill + Confidence badge ────────────────────────────────
     rec_lower = recommendation.lower()
     if "strong invest" in rec_lower or rec_lower == "invest":
         pill_class = "pill-invest"
@@ -240,21 +223,23 @@ def render_score_hero(result: dict) -> None:
         badge_class = "badge-low"
         badge_icon = "⬇"
 
-    st.markdown(f"""
-    <div style="text-align:center; margin: 0.2rem 0 1rem 0;">
-        <span class="{pill_class}" style="margin-right:0.8rem;">
-            {pill_icon} {recommendation}
-        </span>
-        <span class="{badge_class}">
-            {badge_icon} {confidence} Confidence
-        </span>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        f'<div style="text-align:center; margin: 0.2rem 0 1rem 0;">'
+        f'<span class="{pill_class}" style="margin-right:0.8rem;">'
+        f'{pill_icon} {recommendation}'
+        f'</span>'
+        f'<span class="{badge_class}">'
+        f'{badge_icon} {confidence} Confidence'
+        f'</span>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
-    # One-line verdict
+    # ── One-line verdict ──────────────────────────────────────────────────────
     if verdict:
-        st.markdown(f"""
-        <div class="verdict-text" style="text-align:center; max-width:600px; margin:0 auto 1rem auto;">
-            "{verdict}"
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="verdict-text" style="text-align:center; max-width:600px; margin:0 auto 1rem auto;">'
+            f'"{verdict}"'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
