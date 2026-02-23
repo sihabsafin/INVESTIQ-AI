@@ -260,10 +260,10 @@ class AgentLoader:
 
 # ── PIPELINE RUNNER WITH LOADER ───────────────────────────────────────────────
 
-def run_pipeline_with_loader(startup_data: dict) -> dict:
+def run_pipeline_with_loader(startup_data: dict,
+                              model_config: dict = None) -> dict:
     """
     Run the full analysis pipeline while displaying the animated loader.
-
     Returns the assembled final result dict ready for dashboard rendering.
     """
     from ai.pipeline import run_pipeline, assemble_final_result
@@ -305,6 +305,7 @@ def run_pipeline_with_loader(startup_data: dict) -> dict:
         on_agent_start=on_start,
         on_agent_complete=on_complete,
         on_agent_error=on_error,
+        model_config=model_config,
     )
 
     # Brief pause so user can see all agents complete before dashboard loads
