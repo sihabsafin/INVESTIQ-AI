@@ -107,6 +107,7 @@ def run_pipeline(
     on_agent_start: Optional[Callable[[str, str, str], None]] = None,
     on_agent_complete: Optional[Callable[[str, dict, float], None]] = None,
     on_agent_error: Optional[Callable[[str, str], None]] = None,
+    model_config: Optional[dict] = None,
 ) -> dict:
     """
     Execute the full 6-agent analysis pipeline sequentially.
@@ -141,7 +142,7 @@ def run_pipeline(
 
         t_start = time.time()
         try:
-            agent_result = agent["fn"](startup_data)
+            agent_result = agent["fn"](startup_data, model_config=model_config)
             elapsed = round(time.time() - t_start, 2)
             agent_results[key] = agent_result
             result["timings"][key] = elapsed
@@ -168,7 +169,7 @@ def run_pipeline(
 
     t_start = time.time()
     try:
-        synthesis = run_synthesizer_agent(startup_data, agent_results)
+        synthesis = run_synthesizer_agent(startup_data, agent_results, model_config=model_config)
         elapsed = round(time.time() - t_start, 2)
         result["synthesis"] = synthesis
         result["timings"]["synthesis"] = elapsed
