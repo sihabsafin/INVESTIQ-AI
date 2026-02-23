@@ -1,10 +1,19 @@
 """
 InvestIQ AI — Home / Landing Page
+
+Sections:
+  1. Hero with CTA
+  2. Live demo dashboard (hardcoded MediMatch AI — no API call)
+  3. How It Works
+  4. Agent showcase
 """
 
 import streamlit as st
 from styles.theme import apply_theme
+from auth.firebase_auth import is_logged_in
 
+
+# ── DEMO DATA (MediMatch AI) ───────────────────────────────────────────────────
 
 DEMO_RESULT = {
     "startup_name": "MediMatch AI",
@@ -68,14 +77,16 @@ DEMO_RESULT = {
 }
 
 
+# ── RENDER ─────────────────────────────────────────────────────────────────────
+
 def render_home():
     apply_theme()
     _render_hero()
-    _divider()
+    _render_glow_divider()
     _render_demo()
-    _divider()
+    _render_glow_divider()
     _render_how_it_works()
-    _divider()
+    _render_glow_divider()
     _render_agents_showcase()
     _render_footer()
 
@@ -83,81 +94,159 @@ def render_home():
 # ── HERO ───────────────────────────────────────────────────────────────────────
 
 def _render_hero():
-    # Badge
-    st.markdown(
-        '<div style="text-align:center;padding:3rem 1rem 0.5rem 1rem;">'
-        '<div style="display:inline-block;background:rgba(0,212,255,0.08);'
-        'border:1px solid rgba(0,212,255,0.25);border-radius:999px;'
-        'padding:0.3rem 1rem;font-size:0.7rem;color:#00D4FF;'
-        'text-transform:uppercase;letter-spacing:0.18em;font-weight:700;">'
-        'Multi-Agent AI &nbsp;·&nbsp; Investment Intelligence'
-        '</div></div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown("""
+    <div style="
+        text-align:center;
+        padding: 3.5rem 1rem 2rem 1rem;
+        position: relative;
+    ">
+        <!-- Background glow -->
+        <div style="
+            position:absolute;
+            top:0; left:50%; transform:translateX(-50%);
+            width:600px; height:300px;
+            background:radial-gradient(ellipse, rgba(0,212,255,0.06) 0%, transparent 70%);
+            pointer-events:none;
+        "></div>
 
-    # Headline
-    st.markdown(
-        '<div style="text-align:center;padding:0.8rem 1rem 0 1rem;">'
-        '<h1 style="font-family:\'Space Grotesk\',sans-serif;font-size:3rem;'
-        'font-weight:800;color:#F0F6FF;line-height:1.15;letter-spacing:-0.03em;margin:0;">'
-        'Investment Decisions<br>'
-        '<span style="background:linear-gradient(135deg,#00D4FF 0%,#6C63FF 100%);'
-        '-webkit-background-clip:text;-webkit-text-fill-color:transparent;">'
-        'Backed by AI Intelligence</span></h1>'
-        '<p style="font-size:1rem;color:#7B92B2;max-width:540px;'
-        'margin:1rem auto 1.5rem auto;line-height:1.7;">'
-        '6 specialist AI agents analyze every startup across market, competition, '
-        'financials, risk, and innovation — delivering structured, explainable '
-        'investment scores in under 60 seconds.'
-        '</p></div>',
-        unsafe_allow_html=True,
-    )
+        <!-- Label -->
+        <div style="
+            display:inline-block;
+            background:rgba(0,212,255,0.08);
+            border:1px solid rgba(0,212,255,0.25);
+            border-radius:999px;
+            padding:0.3rem 1rem;
+            font-size:0.7rem;
+            color:#00D4FF;
+            text-transform:uppercase;
+            letter-spacing:0.18em;
+            font-weight:700;
+            margin-bottom:1.5rem;
+        ">Multi-Agent AI · Investment Intelligence</div>
 
-    # CTA button
+        <!-- Headline -->
+        <h1 style="
+            font-family:'Space Grotesk', sans-serif;
+            font-size:3.2rem;
+            font-weight:800;
+            color:#F0F6FF;
+            line-height:1.15;
+            letter-spacing:-0.03em;
+            margin:0 0 1rem 0;
+        ">
+            Investment Decisions<br>
+            <span style="
+                background:linear-gradient(135deg, #00D4FF 0%, #6C63FF 100%);
+                -webkit-background-clip:text;
+                -webkit-text-fill-color:transparent;
+            ">Backed by AI Intelligence</span>
+        </h1>
+
+        <!-- Subheadline -->
+        <p style="
+            font-size:1.05rem;
+            color:#7B92B2;
+            max-width:560px;
+            margin:0 auto 2rem auto;
+            line-height:1.7;
+        ">
+            6 specialist AI agents analyze every startup across market, competition,
+            financials, risk, and innovation — delivering structured, explainable
+            investment scores in under 60 seconds.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # CTA buttons
     col_l, col_c, col_r = st.columns([1.5, 2, 1.5])
     with col_c:
         if st.button("🔍  Analyze a Startup →", use_container_width=True, type="primary"):
             st.session_state.current_page = "analyze"
             st.rerun()
 
-    # Stats row — four separate columns so no flex issues
-    st.markdown("<div style='height:1.2rem'></div>", unsafe_allow_html=True)
-    s1, s2, s3, s4 = st.columns(4)
-
-    for col, value, label, color in [
-        (s1, "6",    "AI Agents",     "#00D4FF"),
-        (s2, "<60s", "Analysis Time", "#00FFB3"),
-        (s3, "100%", "Free Forever",  "#6C63FF"),
-        (s4, "PDF",  "Export Ready",  "#F59E0B"),
-    ]:
-        with col:
-            st.markdown(
-                f'<div style="text-align:center;padding:0.5rem 0;">'
-                f'<div style="font-family:\'Space Grotesk\',sans-serif;font-size:1.6rem;'
-                f'font-weight:700;color:{color};">{value}</div>'
-                f'<div style="font-size:0.7rem;color:#3A4F6A;text-transform:uppercase;'
-                f'letter-spacing:0.1em;margin-top:0.2rem;">{label}</div>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
+    # Stats row
+    st.markdown("""
+    <div style="
+        display:flex;
+        justify-content:center;
+        gap:3rem;
+        margin:2rem 0 0.5rem 0;
+        flex-wrap:wrap;
+    ">
+        <div style="text-align:center;">
+            <div style="
+                font-family:'JetBrains Mono', monospace;
+                font-size:1.6rem;
+                font-weight:500;
+                color:#00D4FF;
+            ">6</div>
+            <div style="font-size:0.72rem; color:#3A4F6A; text-transform:uppercase; letter-spacing:0.1em;">
+                AI Agents
+            </div>
+        </div>
+        <div style="text-align:center;">
+            <div style="
+                font-family:'JetBrains Mono', monospace;
+                font-size:1.6rem;
+                font-weight:500;
+                color:#00FFB3;
+            ">&lt;60s</div>
+            <div style="font-size:0.72rem; color:#3A4F6A; text-transform:uppercase; letter-spacing:0.1em;">
+                Analysis Time
+            </div>
+        </div>
+        <div style="text-align:center;">
+            <div style="
+                font-family:'JetBrains Mono', monospace;
+                font-size:1.6rem;
+                font-weight:500;
+                color:#6C63FF;
+            ">100%</div>
+            <div style="font-size:0.72rem; color:#3A4F6A; text-transform:uppercase; letter-spacing:0.1em;">
+                Free Forever
+            </div>
+        </div>
+        <div style="text-align:center;">
+            <div style="
+                font-family:'JetBrains Mono', monospace;
+                font-size:1.6rem;
+                font-weight:500;
+                color:#F59E0B;
+            ">PDF</div>
+            <div style="font-size:0.72rem; color:#3A4F6A; text-transform:uppercase; letter-spacing:0.1em;">
+                Export Ready
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 
 # ── DEMO DASHBOARD ─────────────────────────────────────────────────────────────
 
 def _render_demo():
-    st.markdown(
-        '<div style="text-align:center;margin-bottom:1.5rem;">'
-        '<div style="font-size:0.62rem;color:#3A4F6A;text-transform:uppercase;'
-        'letter-spacing:0.18em;font-weight:600;margin-bottom:0.4rem;">'
-        'LIVE DEMO — NO SIGN IN REQUIRED</div>'
-        '<div style="font-size:1.3rem;font-weight:700;color:#F0F6FF;'
-        'font-family:\'Space Grotesk\',sans-serif;">See a real analysis output</div>'
-        '<div style="font-size:0.85rem;color:#7B92B2;margin-top:0.3rem;">'
-        'MediMatch AI &nbsp;·&nbsp; HealthTech &nbsp;·&nbsp; Pre-Seed</div>'
-        '</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown("""
+    <div style="text-align:center; margin-bottom:1.5rem;">
+        <div style="
+            font-size:0.65rem;
+            color:#3A4F6A;
+            text-transform:uppercase;
+            letter-spacing:0.18em;
+            font-weight:600;
+            margin-bottom:0.5rem;
+        ">LIVE DEMO — NO SIGN IN REQUIRED</div>
+        <div style="
+            font-size:1.3rem;
+            font-weight:700;
+            color:#F0F6FF;
+            font-family:'Space Grotesk', sans-serif;
+        ">See a real analysis output</div>
+        <div style="font-size:0.85rem; color:#7B92B2; margin-top:0.3rem;">
+            MediMatch AI · HealthTech · Pre-Seed
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
+    # Demo dashboard
     from components.gauge import render_score_hero
     from components.score_cards import (
         render_four_score_cards,
@@ -166,11 +255,16 @@ def _render_demo():
     )
     from components.radar import render_radar
 
-    st.markdown(
-        '<div style="background:#0D1B2E;border:1px solid #1A2F4A;'
-        'border-radius:16px;padding:2rem 1.5rem 1.5rem 1.5rem;">',
-        unsafe_allow_html=True,
-    )
+    # Wrap in a bordered container
+    st.markdown("""
+    <div style="
+        background:#0D1B2E;
+        border:1px solid #1A2F4A;
+        border-radius:16px;
+        padding:2rem;
+        margin-bottom:1rem;
+    ">
+    """, unsafe_allow_html=True)
 
     render_score_hero(DEMO_RESULT)
     st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
@@ -179,13 +273,15 @@ def _render_demo():
 
     col_radar, col_sw = st.columns([1, 1.2])
     with col_radar:
-        st.markdown(
-            '<div style="font-size:0.62rem;color:#3A4F6A;text-transform:uppercase;'
-            'letter-spacing:0.15em;font-weight:600;margin-bottom:0.3rem;text-align:center;">'
-            '5-DIMENSION RADAR</div>',
-            unsafe_allow_html=True,
-        )
+        st.markdown("""
+        <div style="
+            font-size:0.65rem; color:#3A4F6A;
+            text-transform:uppercase; letter-spacing:0.15em;
+            font-weight:600; margin-bottom:0.3rem; text-align:center;
+        ">5-DIMENSION RADAR</div>
+        """, unsafe_allow_html=True)
         render_radar(DEMO_RESULT, height=320)
+
     with col_sw:
         render_strengths_weaknesses(DEMO_RESULT)
 
@@ -193,7 +289,7 @@ def _render_demo():
     render_executive_summary(DEMO_RESULT)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+    # CTA below demo
     col_l, col_c, col_r = st.columns([1.5, 2, 1.5])
     with col_c:
         if st.button("Analyze Your Own Startup →", use_container_width=True):
@@ -204,120 +300,215 @@ def _render_demo():
 # ── HOW IT WORKS ──────────────────────────────────────────────────────────────
 
 def _render_how_it_works():
-    st.markdown(
-        '<div style="text-align:center;margin-bottom:1.8rem;">'
-        '<div style="font-size:0.62rem;color:#3A4F6A;text-transform:uppercase;'
-        'letter-spacing:0.18em;font-weight:600;margin-bottom:0.4rem;">HOW IT WORKS</div>'
-        '<div style="font-size:1.4rem;font-weight:700;color:#F0F6FF;'
-        'font-family:\'Space Grotesk\',sans-serif;">Three steps. Under 60 seconds.</div>'
-        '</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown("""
+    <div style="text-align:center; margin-bottom:2rem;">
+        <div style="
+            font-size:0.65rem; color:#3A4F6A;
+            text-transform:uppercase; letter-spacing:0.18em;
+            font-weight:600; margin-bottom:0.5rem;
+        ">HOW IT WORKS</div>
+        <div style="
+            font-size:1.4rem; font-weight:700;
+            color:#F0F6FF; font-family:'Space Grotesk', sans-serif;
+        ">Three steps. Under 60 seconds.</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns(3)
     steps = [
-        ("01", "📝", "Describe the Startup",
-         "Enter the startup name, description, industry, business model, and funding stage. Takes 60 seconds.",
-         "#00D4FF"),
-        ("02", "🤖", "6 Agents Analyze",
-         "Market, Competition, Financial, Risk, and Innovation agents run in sequence. The Investment Committee synthesizes the verdict.",
-         "#6C63FF"),
-        ("03", "📊", "Get Your Score",
-         "Receive a structured dashboard with scores, charts, reasoning, and a PDF report you can share.",
-         "#00FFB3"),
+        {
+            "num": "01",
+            "icon": "📝",
+            "title": "Describe the Startup",
+            "desc": "Enter the startup name, description, industry, business model, and funding stage. Takes 60 seconds to fill out.",
+            "color": "#00D4FF",
+        },
+        {
+            "num": "02",
+            "icon": "🤖",
+            "title": "6 Agents Analyze",
+            "desc": "Market, Competition, Financial, Risk, and Innovation agents run in sequence. The Investment Committee synthesizes the final verdict.",
+            "color": "#6C63FF",
+        },
+        {
+            "num": "03",
+            "icon": "📊",
+            "title": "Get Your Score",
+            "desc": "Receive a structured dashboard with scores, charts, reasoning, and a PDF report you can share with your team.",
+            "color": "#00FFB3",
+        },
     ]
-    for col, (num, icon, title, desc, color) in zip([col1, col2, col3], steps):
+
+    for col, step in zip([col1, col2, col3], steps):
         with col:
-            st.markdown(
-                f'<div style="background:#0D1B2E;border:1px solid #1A2F4A;'
-                f'border-top:2px solid {color};border-radius:14px;'
-                f'padding:1.8rem 1.4rem;text-align:center;">'
-                f'<div style="font-size:0.65rem;color:{color};letter-spacing:0.12em;'
-                f'font-weight:700;margin-bottom:0.8rem;">STEP {num}</div>'
-                f'<div style="font-size:2rem;margin-bottom:0.8rem;">{icon}</div>'
-                f'<div style="font-size:0.98rem;font-weight:700;color:#F0F6FF;'
-                f'font-family:\'Space Grotesk\',sans-serif;margin-bottom:0.6rem;">{title}</div>'
-                f'<div style="font-size:0.82rem;color:#7B92B2;line-height:1.6;">{desc}</div>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
+            st.markdown(f"""
+            <div style="
+                background:#0D1B2E;
+                border:1px solid #1A2F4A;
+                border-radius:14px;
+                padding:1.8rem 1.4rem;
+                text-align:center;
+                height:100%;
+                position:relative;
+                overflow:hidden;
+            ">
+                <div style="
+                    position:absolute; top:0; left:0; right:0;
+                    height:2px;
+                    background:linear-gradient(90deg, transparent, {step['color']}, transparent);
+                "></div>
+                <div style="
+                    font-family:'JetBrains Mono', monospace;
+                    font-size:0.7rem;
+                    color:{step['color']};
+                    letter-spacing:0.1em;
+                    margin-bottom:0.8rem;
+                ">STEP {step['num']}</div>
+                <div style="font-size:2rem; margin-bottom:0.8rem;">{step['icon']}</div>
+                <div style="
+                    font-size:1rem; font-weight:700;
+                    color:#F0F6FF;
+                    font-family:'Space Grotesk', sans-serif;
+                    margin-bottom:0.6rem;
+                ">{step['title']}</div>
+                <div style="
+                    font-size:0.83rem; color:#7B92B2; line-height:1.6;
+                ">{step['desc']}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
 
 # ── AGENT SHOWCASE ─────────────────────────────────────────────────────────────
 
 def _render_agents_showcase():
-    st.markdown(
-        '<div style="text-align:center;margin-bottom:1.8rem;">'
-        '<div style="font-size:0.62rem;color:#3A4F6A;text-transform:uppercase;'
-        'letter-spacing:0.18em;font-weight:600;margin-bottom:0.4rem;">'
-        'THE INTELLIGENCE LAYER</div>'
-        '<div style="font-size:1.4rem;font-weight:700;color:#F0F6FF;'
-        'font-family:\'Space Grotesk\',sans-serif;">Meet the 6 Specialist Agents</div>'
-        '</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown("""
+    <div style="text-align:center; margin-bottom:2rem;">
+        <div style="
+            font-size:0.65rem; color:#3A4F6A;
+            text-transform:uppercase; letter-spacing:0.18em;
+            font-weight:600; margin-bottom:0.5rem;
+        ">THE INTELLIGENCE LAYER</div>
+        <div style="
+            font-size:1.4rem; font-weight:700;
+            color:#F0F6FF; font-family:'Space Grotesk', sans-serif;
+        ">Meet the 6 Specialist Agents</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     agents = [
-        ("🔍", "Market Intelligence",    "llama-3.3-70b · Groq",
-         "Evaluates market size, timing, demand signals, and growth trajectory.", "#00D4FF"),
-        ("⚔️", "Competitive Landscape",  "llama-3.3-70b · Groq",
-         "Maps competitors, moats, differentiation strength, and Big Tech risk.", "#6C63FF"),
-        ("💰", "Financial Viability",    "llama-3.3-70b · Groq",
-         "Assesses revenue model, unit economics, scalability, and margins.", "#00FFB3"),
-        ("⚠️", "Risk Assessment",        "deepseek-r1 · Groq",
-         "Deep reasoning on execution, regulatory, market, and macro risks.", "#F59E0B"),
-        ("💡", "Innovation Scout",       "llama-3.3-70b · Groq",
-         "Scores novelty, defensibility, and unfair advantage potential.", "#B45FFF"),
-        ("🏛️", "Investment Committee",   "Gemini 2.5 Flash",
-         "Synthesizes all 5 agents into a final weighted investment decision.", "#FF6B35"),
+        {
+            "icon": "🔍", "name": "Market Intelligence",
+            "model": "llama-3.3-70b · Groq",
+            "desc": "Evaluates market size, timing, demand signals, and growth trajectory.",
+            "color": "#00D4FF",
+        },
+        {
+            "icon": "⚔️", "name": "Competitive Landscape",
+            "model": "llama-3.3-70b · Groq",
+            "desc": "Maps competitors, moats, differentiation strength, and Big Tech risk.",
+            "color": "#6C63FF",
+        },
+        {
+            "icon": "💰", "name": "Financial Viability",
+            "model": "llama-3.3-70b · Groq",
+            "desc": "Assesses revenue model, unit economics, scalability, and margins.",
+            "color": "#00FFB3",
+        },
+        {
+            "icon": "⚠️", "name": "Risk Assessment",
+            "model": "deepseek-r1 · Groq",
+            "desc": "Deep reasoning on execution, regulatory, market, and macro risks.",
+            "color": "#F59E0B",
+        },
+        {
+            "icon": "💡", "name": "Innovation Scout",
+            "model": "llama-3.3-70b · Groq",
+            "desc": "Scores novelty, defensibility, and unfair advantage potential.",
+            "color": "#B45FFF",
+        },
+        {
+            "icon": "🏛️", "name": "Investment Committee",
+            "model": "Gemini 2.5 Flash",
+            "desc": "Synthesizes all 5 agents into a final weighted investment decision.",
+            "color": "#FF6B35",
+        },
     ]
 
-    col_a, col_b = st.columns(2)
-    for i, (icon, name, model, desc, color) in enumerate(agents):
-        col = col_a if i % 2 == 0 else col_b
+    col1, col2 = st.columns(2)
+    for i, agent in enumerate(agents):
+        col = col1 if i % 2 == 0 else col2
         with col:
-            st.markdown(
-                f'<div style="background:#0D1B2E;border:1px solid #1A2F4A;'
-                f'border-left:3px solid {color};border-radius:10px;'
-                f'padding:1rem 1.2rem;margin-bottom:0.8rem;'
-                f'display:flex;gap:1rem;align-items:flex-start;">'
-                f'<div style="font-size:1.4rem;flex-shrink:0;">{icon}</div>'
-                f'<div>'
-                f'<div style="font-size:0.92rem;font-weight:700;color:#F0F6FF;'
-                f'font-family:\'Space Grotesk\',sans-serif;margin-bottom:0.15rem;">{name}</div>'
-                f'<div style="font-size:0.63rem;color:{color};text-transform:uppercase;'
-                f'letter-spacing:0.08em;margin-bottom:0.3rem;">{model}</div>'
-                f'<div style="font-size:0.8rem;color:#7B92B2;line-height:1.5;">{desc}</div>'
-                f'</div></div>',
-                unsafe_allow_html=True,
-            )
+            st.markdown(f"""
+            <div style="
+                background:#0D1B2E;
+                border:1px solid #1A2F4A;
+                border-left:3px solid {agent['color']};
+                border-radius:10px;
+                padding:1rem 1.2rem;
+                margin-bottom:0.8rem;
+                display:flex;
+                gap:1rem;
+                align-items:flex-start;
+                transition:border-color 0.2s;
+            ">
+                <div style="font-size:1.5rem; flex-shrink:0;">{agent['icon']}</div>
+                <div>
+                    <div style="
+                        font-size:0.92rem; font-weight:700;
+                        color:#F0F6FF;
+                        font-family:'Space Grotesk', sans-serif;
+                        margin-bottom:0.15rem;
+                    ">{agent['name']}</div>
+                    <div style="
+                        font-size:0.65rem; color:{agent['color']};
+                        text-transform:uppercase; letter-spacing:0.08em;
+                        margin-bottom:0.3rem;
+                    ">{agent['model']}</div>
+                    <div style="font-size:0.8rem; color:#7B92B2; line-height:1.5;">
+                        {agent['desc']}
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
 
 # ── FOOTER ─────────────────────────────────────────────────────────────────────
 
 def _render_footer():
-    st.markdown(
-        '<div style="text-align:center;padding:3rem 1rem 1rem 1rem;'
-        'border-top:1px solid #1A2F4A;margin-top:2rem;">'
-        '<div style="font-family:\'Space Grotesk\',sans-serif;font-weight:700;'
-        'font-size:1.2rem;color:#F0F6FF;margin-bottom:0.5rem;">'
-        'Invest<span style="background:linear-gradient(135deg,#00D4FF,#6C63FF);'
-        '-webkit-background-clip:text;-webkit-text-fill-color:transparent;">IQ</span> AI'
-        '</div>'
-        '<div style="font-size:0.78rem;color:#3A4F6A;">'
-        'Powered by Groq &nbsp;·&nbsp; Gemini 2.5 &nbsp;·&nbsp; Firebase &nbsp;·&nbsp; Streamlit'
-        '</div>'
-        '<div style="font-size:0.72rem;color:#1A2F4A;margin-top:0.5rem;">'
-        'AI-generated analysis is for informational purposes only. Not financial advice.'
-        '</div></div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown("""
+    <div style="
+        text-align:center;
+        padding:3rem 1rem 1rem 1rem;
+        border-top:1px solid #1A2F4A;
+        margin-top:2rem;
+    ">
+        <div style="
+            font-family:'Space Grotesk', sans-serif;
+            font-weight:700;
+            font-size:1.2rem;
+            color:#F0F6FF;
+            margin-bottom:0.5rem;
+        ">Invest<span style="
+            background:linear-gradient(135deg,#00D4FF,#6C63FF);
+            -webkit-background-clip:text;
+            -webkit-text-fill-color:transparent;
+        ">IQ</span> AI</div>
+        <div style="font-size:0.78rem; color:#3A4F6A;">
+            Powered by Groq · Gemini 2.5 · Firebase · Streamlit
+        </div>
+        <div style="font-size:0.72rem; color:#1A2F4A; margin-top:0.5rem;">
+            AI-generated analysis is for informational purposes only.
+            Not financial advice.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 
-def _divider():
-    st.markdown(
-        '<div style="height:1px;'
-        'background:linear-gradient(90deg,transparent,#1A2F4A,transparent);'
-        'margin:2.5rem 0;"></div>',
-        unsafe_allow_html=True,
-    )
+def _render_glow_divider():
+    st.markdown("""
+    <div style="
+        height:1px;
+        background:linear-gradient(90deg, transparent, #1A2F4A, transparent);
+        margin:2.5rem 0;
+    "></div>
+    """, unsafe_allow_html=True)
