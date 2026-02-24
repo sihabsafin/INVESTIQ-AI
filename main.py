@@ -15,7 +15,6 @@ from auth.firebase_auth import init_auth_state, is_logged_in, render_sidebar_use
 apply_theme()
 init_auth_state()
 
-# Default page: logged-in → dashboard, guest → home
 if "current_page" not in st.session_state:
     st.session_state.current_page = "dashboard" if is_logged_in() else "home"
 
@@ -71,6 +70,23 @@ with st.sidebar:
             st.session_state.current_page = "compare"
             st.rerun()
 
+    # Admin button — only visible to admins
+    if is_logged_in():
+        from auth.admin_auth import is_admin
+        if is_admin():
+            st.markdown(
+                '<hr style="border-color:#1A2F4A;margin:0.8rem 0 0.5rem 0;">',
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                '<p style="color:#FF4560;font-size:0.6rem;text-transform:uppercase;'
+                'letter-spacing:0.12em;margin-bottom:0.4rem;">🔐 ADMIN</p>',
+                unsafe_allow_html=True,
+            )
+            if st.button("🛡️  Admin Panel", use_container_width=True):
+                st.session_state.current_page = "admin"
+                st.rerun()
+
     st.markdown(
         '<hr style="border-color:#1A2F4A;margin:1rem 0;">',
         unsafe_allow_html=True,
@@ -98,7 +114,6 @@ with st.sidebar:
 # ── PAGE ROUTING ───────────────────────────────────────────────────────────────
 page = st.session_state.current_page
 
-# Shared link via URL token
 if "token" in st.query_params:
     page = "shared"
 
@@ -121,6 +136,10 @@ elif page == "history":
 elif page == "compare":
     from pages.compare import render_compare
     render_compare()
+
+elif page == "admin":
+    from pages.admin import render_admin
+    render_admin()
 
 elif page == "shared":
     from pages.shared import render_shared
