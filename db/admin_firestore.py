@@ -105,13 +105,12 @@ def _from_doc(doc: dict, inject_uid: str = "") -> dict:
 
 def _get_all_user_uids() -> list:
     """
-    Enumerate the top-level /users collection to get all user UIDs.
+    Discover all user UIDs using 3 parallel methods:
+    1. Enumerate /users collection (works after adding users/{uid} profile docs on login)
+    2. Enumerate /platform_stats collection (populated on every login + save)
+    3. Always include admin's own UID as minimum fallback
 
-    The admin rule /{path=**}/analyses/{analysisId} applies to sub-collections,
-    but reading /users collection itself requires a separate rule OR we rely on
-    the fact that admin can list their sub-documents.
-
-    Falls back to platform_stats registry + admin's own UID.
+    All 3 methods work with the updated Firestore rules.
     """
     token = _id_token()
     if not token:
@@ -119,48 +118,47 @@ def _get_all_user_uids() -> list:
 
     discovered_uids = []
 
-    # Method 1: List /users collection (works if admin has list permission)
-    url = f"{_rest_base()}/users"
-    try:
-        resp = requests.get(
-            url, headers=_headers(),
-            params={"pageSize": 200},
-            timeout=10,
-        )
-        if resp.status_code == 200:
-            data = resp.json()
-            docs = data.get("documents", [])
-            for d in docs:
-                name = d.get("name", "")
-                uid  = name.split("/")[-1]
-                if uid and uid not in discovered_uids:
-                    discovered_uids.append(uid)
-            print(f"[Admin] Found {len(discovered_uids)} UIDs via /users enumeration")
-        else:
-            print(f"[Admin] /users enumeration returned {resp.status_code} — trying fallbacks")
-    except Exception as e:
-        print(f"[Admin] /users enumeration error: {e}")
+    def _extract_uids_from_collection(collection_path: str) -> list:
+        """List a collection and extract UIDs from document names."""
+        uids = []
+        url  = f"{_rest_base()}/{collection_path}"
+        try:
+            # Fetch up to 500 docs — covers large user bases
+            resp = requests.get(
+                url, headers=_headers(),
+                params={"pageSize": 500},
+                timeout=12,
+            )
+            if resp.status_code == 200:
+                docs = resp.json().get("documents", [])
+                for d in docs:
+                    uid = d.get("name", "").split("/")[-1]
+                    if uid and len(uid) > 8:  # Filter out non-UID strings
+                        uids.append(uid)
+                print(f"[Admin] /{collection_path}: found {len(uids)} UIDs")
+            else:
+                print(f"[Admin] /{collection_path}: HTTP {resp.status_code}")
+        except Exception as e:
+            print(f"[Admin] /{collection_path} error: {e}")
+        return uids
 
-    # Method 2: platform_stats registry (populated each time a user saves)
-    try:
-        url2 = f"{_rest_base()}/platform_stats"
-        resp2 = requests.get(url2, headers=_headers(), params={"pageSize": 200}, timeout=8)
-        if resp2.status_code == 200:
-            docs2 = resp2.json().get("documents", [])
-            for d in docs2:
-                uid = d.get("name", "").split("/")[-1]
-                if uid and uid not in discovered_uids:
-                    discovered_uids.append(uid)
-            print(f"[Admin] platform_stats added UIDs, total now: {len(discovered_uids)}")
-    except Exception as e:
-        print(f"[Admin] platform_stats error: {e}")
+    # Method 1: /users collection (profile docs written on login)
+    for uid in _extract_uids_from_collection("users"):
+        if uid not in discovered_uids:
+            discovered_uids.append(uid)
 
-    # Method 3: Always include admin's own UID
+    # Method 2: /platform_stats collection (written on login + save)
+    for uid in _extract_uids_from_collection("platform_stats"):
+        if uid not in discovered_uids:
+            discovered_uids.append(uid)
+
+    # Method 3: Admin's own UID always included
     admin_uid = st.session_state.get("user_uid", "")
     if admin_uid and admin_uid not in discovered_uids:
         discovered_uids.append(admin_uid)
-        print(f"[Admin] Added admin own UID: {admin_uid[:8]}...")
+        print(f"[Admin] Admin UID added: {admin_uid[:8]}...")
 
+    print(f"[Admin] Total unique UIDs discovered: {len(discovered_uids)}")
     return discovered_uids
 
 
