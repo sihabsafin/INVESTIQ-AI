@@ -86,7 +86,7 @@ def render_admin():
     _render_moderation(analyses)
 
 
-# ── DATA LOADER ───────────────────────────────────────────────────────────────
+# ── DATA LOADER ─────────────────────────────────────────────────────────────────
 
 def _load_admin_data() -> list:
     if "admin_cache" not in st.session_state:
@@ -94,7 +94,51 @@ def _load_admin_data() -> list:
             from db.admin_firestore import fetch_all_analyses
             data = fetch_all_analyses(limit=500)
             st.session_state["admin_cache"] = data
-    return st.session_state.get("admin_cache", [])
+
+    data      = st.session_state.get("admin_cache", [])
+    admin_uid = get_current_uid() or ""
+    uids_in   = set(a.get("_uid", "") or a.get("uid", "") for a in data)
+
+    if len(data) == 0:
+        _show_fix_banner(admin_uid, empty=True)
+    elif len(uids_in) <= 1 and (not uids_in or admin_uid in uids_in):
+        _show_fix_banner(admin_uid, empty=False, count=len(data))
+    else:
+        st.markdown(
+            "<div style=\"background:rgba(0,255,179,0.06);border:1px solid "
+            "rgba(0,255,179,0.2);border-radius:10px;padding:0.5rem 1rem;"
+            "margin-bottom:0.8rem;\">"
+            "<span style=\"font-size:0.75rem;color:#00FFB3;\">"
+            + f"\u2705 Platform data loaded \u2014 {len(data)} analyses "
+            + f"across {len(uids_in)} users</span></div>",
+            unsafe_allow_html=True,
+        )
+    return data
+
+
+def _show_fix_banner(admin_uid: str, empty: bool = True, count: int = 0):
+    rule = (
+        "// Add inside: match /databases/{database}/documents { }\n"
+        "match /{path=**}/analyses/{analysisId} {\n"
+        "  allow read: if request.auth != null\n"
+        "              && request.auth.uid == \"" + admin_uid + "\";\n"
+        "}"
+    )
+    if empty:
+        msg = (
+            "**\u26a0\ufe0f Firestore 403 \u2014 Permission Fix Required**\n\n"
+            "Admin cannot read other users\' data until Firestore rules are updated.\n\n"
+            "**Step 1:** Firebase Console \u2192 Firestore Database \u2192 **Rules** tab  \n"
+            "**Step 2:** Add this rule, then click **Publish**  \n"
+            "**Step 3:** Return here and click **\U0001f504 Refresh**"
+        )
+    else:
+        msg = (
+            f"**\u26a0\ufe0f Partial data \u2014 showing your own {count} analyses only.**  \n"
+            "Add the Firestore rule below, click **Publish**, then **\U0001f504 Refresh**."
+        )
+    st.error(msg)
+    st.code(rule, language="javascript")
 
 
 # ── FEATURE 1: PLATFORM KPIs ──────────────────────────────────────────────────
