@@ -127,44 +127,88 @@ def _load_admin_data() -> list:
     is_multi  = len(uids_in) > 1 or (len(uids_in)==1 and admin_uid not in uids_in)
 
     if total == 0:
-        # Zero results — show diagnostic
-        st.error(
-            "**No data loaded.** The /users collection enumeration returned 0 documents.\n\n"
-            "**Most likely cause:** Firestore rules do not allow admin to LIST the /users collection.\n\n"
-            "**Quick fix — add this rule to your Firestore Rules:**"
-        )
-        admin_uid_display = admin_uid or "YOUR_UID_HERE"
-        rule = (
-            "// Allow admin to list /users collection\n"
-            "match /users/{userId} {\n"
-            "  allow read: if request.auth != null\n"
-            "              && request.auth.uid == \"" + admin_uid_display + "\";\n"
-            "}\n\n"
-            "// Already have this — admin reads all analyses\n"
-            "match /{path=**}/analyses/{analysisId} {\n"
-            "  allow read: if request.auth != null\n"
-            "              && request.auth.uid == \"" + admin_uid_display + "\";\n"
-            "}"
-        )
-        st.code(rule, language="javascript")
-        st.info("After adding, click **Publish** in Firebase → then click **🔄 Refresh** here.")
+        st.warning("**No data loaded yet.** Click the button below to register your account instantly.")
+        if st.button("⚡ Bootstrap Admin Registry Now", type="primary"):
+            _bootstrap_admin_registry()
+            st.session_state.pop("admin_cache", None)
+            st.rerun()
+        with st.expander("ℹ️ Why is this happening?"):
+            st.markdown(
+                "Profile docs are written on login starting from this code version. "
+                "The Bootstrap button writes your profile doc right now — no sign-out needed. "
+                "Future users register automatically on their next login."
+            )
     elif not is_multi:
-        # Only admin's own data — /users list worked but only found admin
         st.warning(
-            f"⚠️ **Showing only your own {total} analyses.** "
-            "Other users' data will appear here as they use the platform "
-            "(each save registers them in the admin registry automatically)."
+            f"Showing your own {total} analyses only. "
+            "Other users will appear automatically after they next log in."
         )
     else:
-        st.markdown(
-            f'<div style="background:rgba(0,255,179,0.06);border:1px solid rgba(0,255,179,0.2);'
-            f'border-radius:10px;padding:0.5rem 1rem;margin-bottom:0.8rem;">'
-            f'<span style="font-size:0.75rem;color:#00FFB3;">✅ '
-            f'{total} analyses loaded from {len(uids_in)} users</span></div>',
-            unsafe_allow_html=True,
-        )
+        st.success(f"✅ {total} analyses loaded from {len(uids_in)} users")
 
     return data
+
+
+
+def _bootstrap_admin_registry():
+    """Write /users/{uid} and /platform_stats/{uid} right now using the current session."""
+    from auth.firebase_auth import get_current_uid, get_current_email, get_id_token
+    uid   = get_current_uid() or ""
+    email = get_current_email() or ""
+    token = get_id_token() or ""
+
+    if not uid or not token:
+        st.error("Not logged in.")
+        return
+
+    import requests, json
+    from datetime import datetime, timezone
+    project = st.secrets["firebase"]["projectId"]
+    base    = (
+        f"https://firestore.googleapis.com/v1"
+        f"/projects/{project}/databases/(default)/documents"
+    )
+    hdrs    = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    def tv(v):
+        if isinstance(v, bool): return {"booleanValue": v}
+        if isinstance(v, int):  return {"integerValue": str(v)}
+        if isinstance(v, str):  return {"stringValue": v}
+        return {"stringValue": str(v)}
+
+    # Write /users/{uid}
+    r1 = requests.patch(
+        f"{base}/users/{uid}", headers=hdrs, timeout=8,
+        data=json.dumps({"fields": {
+            "uid": tv(uid), "email": tv(email),
+            "joined_at": tv(now_iso), "last_login": tv(now_iso), "active": tv(True),
+        }}),
+    )
+
+    # Write /platform_stats/{uid}
+    r2 = requests.patch(
+        f"{base}/platform_stats/{uid}", headers=hdrs, timeout=8,
+        data=json.dumps({"fields": {
+            "uid": tv(uid), "email": tv(email),
+            "last_login": tv(now_iso), "total_analyses": tv(0),
+        }}),
+    )
+
+    if r1.status_code == 200 and r2.status_code == 200:
+        st.success(
+            f"✅ Registered successfully! "
+            f"Now click **🔄 Refresh** to load all your analyses."
+        )
+    else:
+        # Show specific error to diagnose rules issue
+        st.error(
+            f"/users write: HTTP {r1.status_code} — "
+            f"/platform_stats write: HTTP {r2.status_code}\n\n"
+            f"If you see 403, your Firestore rules need:\n"
+            f"  match /users/{{userId}} {{ allow write: if request.auth.uid == userId; }}\n"
+            f"  match /platform_stats/{{userId}} {{ allow write: if request.auth.uid == userId; }}"
+        )
 
 
 # ── FEATURE 1: PLATFORM KPIs ──────────────────────────────────────────────────
