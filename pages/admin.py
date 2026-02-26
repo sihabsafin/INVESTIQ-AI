@@ -382,13 +382,12 @@ def _render_platform_analytics(analyses: list, stats: dict):
             hovertemplate="%{x}: %{y} analyses<extra></extra>",
         ))
         fig.update_layout(**_chart_layout("Analyses per Day — Last 30 Days", height=260))
-        fig.update_xaxis(tickangle=-45, tickfont=dict(size=8))
+        fig.update_xaxes(tickangle=-45, tickfont=dict(size=8))
         st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     # ── Chart 2: Score distribution histogram ─────────────────────────────────
     with col2:
         scores = [a.get("overall_investment_score", 0) for a in analyses]
-        import plotly.figure_factory as ff
         try:
             fig2 = go.Figure(go.Histogram(
                 x=scores, nbinsx=20,
