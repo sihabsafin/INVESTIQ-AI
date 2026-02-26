@@ -19,7 +19,7 @@
 
 <br/>
 
-[**Live Demo**](https://your-app.streamlit.app) · [**Video Walkthrough**](https://linkedin.com/in/yourprofile) · [**Report a Bug**](https://github.com/yourusername/investiq-ai/issues) · [**Request Feature**](https://github.com/yourusername/investiq-ai/issues)
+[**Live Demo**](https://investiq-ai.streamlit.app) · [**Video Walkthrough**](https://www.linkedin.com/posts/sihabsafin_python-ai-buildinpublic-activity-7432805402154549248-d07D?utm_source=social_share_send&utm_medium=member_desktop_web&rcm=ACoAAEiVzoQById1u8Wjx5N3vhgO_z_XrH-DGKg) · [**Report a Bug**](https://github.com/sihabsafin/investiq-ai/issues) · [**Request Feature**](https://github.com/sihabsafin/investiq-ai/issues)
 
 </div>
 
