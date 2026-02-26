@@ -127,10 +127,82 @@ def refresh_token() -> bool:
 
 def _set_session(user: dict):
     """Store Firebase user data in session state."""
-    st.session_state.user = user
-    st.session_state.id_token = user.get("idToken")
+    st.session_state.user      = user
+    st.session_state.id_token  = user.get("idToken")
     st.session_state.user_email = user.get("email")
-    st.session_state.user_uid = user.get("localId")
+    st.session_state.user_uid  = user.get("localId")
+    # Register user in admin-visible registry immediately on login/signup
+    try:
+        _register_user_in_registry(
+            uid=user.get("localId",""),
+            email=user.get("email",""),
+            token=user.get("idToken",""),
+        )
+    except Exception:
+        pass  # Never block login if registry write fails
+
+
+def _register_user_in_registry(uid: str, email: str, token: str):
+    """
+    Write /users/{uid} profile doc + /platform_stats/{uid} doc.
+    This makes the user discoverable by the admin dashboard immediately
+    after login — even before they save any analysis.
+    """
+    if not uid or not token:
+        return
+
+    import requests, json
+    from datetime import datetime, timezone
+
+    project = st.secrets["firebase"]["projectId"]
+    base    = f"https://firestore.googleapis.com/v1/projects/{project}/databases/(default)/documents"
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    def to_val(v):
+        if v is None:          return {"nullValue": None}
+        if isinstance(v, bool):return {"booleanValue": v}
+        if isinstance(v, int): return {"integerValue": str(v)}
+        if isinstance(v, str): return {"stringValue": v}
+        return {"stringValue": str(v)}
+
+    # 1. Write /users/{uid} — creates the parent doc so admin can enumerate /users
+    user_doc = {"fields": {
+        "uid":        to_val(uid),
+        "email":      to_val(email),
+        "joined_at":  to_val(now_iso),
+        "last_login": to_val(now_iso),
+        "active":     to_val(True),
+    }}
+    try:
+        requests.patch(
+            f"{base}/users/{uid}",
+            headers=headers,
+            data=json.dumps(user_doc),
+            params={"updateMask.fieldPaths": ["uid","email","last_login","active"]},
+            timeout=6,
+        )
+    except Exception:
+        pass
+
+    # 2. Write /platform_stats/{uid} — admin stats registry
+    stats_doc = {"fields": {
+        "uid":            to_val(uid),
+        "email":          to_val(email),
+        "last_login":     to_val(now_iso),
+        "total_analyses": to_val(0),
+    }}
+    try:
+        # Only set total_analyses if not already set (don't overwrite existing count)
+        requests.patch(
+            f"{base}/platform_stats/{uid}",
+            headers=headers,
+            data=json.dumps(stats_doc),
+            params={"updateMask.fieldPaths": ["uid","email","last_login"]},
+            timeout=6,
+        )
+    except Exception:
+        pass
 
 
 def _parse_firebase_error(error_str: str) -> str:
