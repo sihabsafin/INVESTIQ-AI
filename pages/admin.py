@@ -90,55 +90,56 @@ def render_admin():
 
 def _load_admin_data() -> list:
     if "admin_cache" not in st.session_state:
-        with st.spinner("Loading platform data..."):
+        with st.spinner("Fetching platform data from Firestore..."):
             from db.admin_firestore import fetch_all_analyses
             data = fetch_all_analyses(limit=500)
             st.session_state["admin_cache"] = data
 
     data      = st.session_state.get("admin_cache", [])
     admin_uid = get_current_uid() or ""
-    uids_in   = set(a.get("_uid", "") or a.get("uid", "") for a in data)
+    uids_in   = set(a.get("_uid","") or a.get("uid","") for a in data if a.get("_uid") or a.get("uid"))
+    total     = len(data)
+    is_multi  = len(uids_in) > 1 or (len(uids_in)==1 and admin_uid not in uids_in)
 
-    if len(data) == 0:
-        _show_fix_banner(admin_uid, empty=True)
-    elif len(uids_in) <= 1 and (not uids_in or admin_uid in uids_in):
-        _show_fix_banner(admin_uid, empty=False, count=len(data))
+    if total == 0:
+        # Zero results — show diagnostic
+        st.error(
+            "**No data loaded.** The /users collection enumeration returned 0 documents.\n\n"
+            "**Most likely cause:** Firestore rules do not allow admin to LIST the /users collection.\n\n"
+            "**Quick fix — add this rule to your Firestore Rules:**"
+        )
+        admin_uid_display = admin_uid or "YOUR_UID_HERE"
+        rule = (
+            "// Allow admin to list /users collection\n"
+            "match /users/{userId} {\n"
+            "  allow read: if request.auth != null\n"
+            "              && request.auth.uid == \"" + admin_uid_display + "\";\n"
+            "}\n\n"
+            "// Already have this — admin reads all analyses\n"
+            "match /{path=**}/analyses/{analysisId} {\n"
+            "  allow read: if request.auth != null\n"
+            "              && request.auth.uid == \"" + admin_uid_display + "\";\n"
+            "}"
+        )
+        st.code(rule, language="javascript")
+        st.info("After adding, click **Publish** in Firebase → then click **🔄 Refresh** here.")
+    elif not is_multi:
+        # Only admin's own data — /users list worked but only found admin
+        st.warning(
+            f"⚠️ **Showing only your own {total} analyses.** "
+            "Other users' data will appear here as they use the platform "
+            "(each save registers them in the admin registry automatically)."
+        )
     else:
         st.markdown(
-            "<div style=\"background:rgba(0,255,179,0.06);border:1px solid "
-            "rgba(0,255,179,0.2);border-radius:10px;padding:0.5rem 1rem;"
-            "margin-bottom:0.8rem;\">"
-            "<span style=\"font-size:0.75rem;color:#00FFB3;\">"
-            + f"\u2705 Platform data loaded \u2014 {len(data)} analyses "
-            + f"across {len(uids_in)} users</span></div>",
+            f'<div style="background:rgba(0,255,179,0.06);border:1px solid rgba(0,255,179,0.2);'
+            f'border-radius:10px;padding:0.5rem 1rem;margin-bottom:0.8rem;">'
+            f'<span style="font-size:0.75rem;color:#00FFB3;">✅ '
+            f'{total} analyses loaded from {len(uids_in)} users</span></div>',
             unsafe_allow_html=True,
         )
+
     return data
-
-
-def _show_fix_banner(admin_uid: str, empty: bool = True, count: int = 0):
-    rule = (
-        "// Add inside: match /databases/{database}/documents { }\n"
-        "match /{path=**}/analyses/{analysisId} {\n"
-        "  allow read: if request.auth != null\n"
-        "              && request.auth.uid == \"" + admin_uid + "\";\n"
-        "}"
-    )
-    if empty:
-        msg = (
-            "**\u26a0\ufe0f Firestore 403 \u2014 Permission Fix Required**\n\n"
-            "Admin cannot read other users\' data until Firestore rules are updated.\n\n"
-            "**Step 1:** Firebase Console \u2192 Firestore Database \u2192 **Rules** tab  \n"
-            "**Step 2:** Add this rule, then click **Publish**  \n"
-            "**Step 3:** Return here and click **\U0001f504 Refresh**"
-        )
-    else:
-        msg = (
-            f"**\u26a0\ufe0f Partial data \u2014 showing your own {count} analyses only.**  \n"
-            "Add the Firestore rule below, click **Publish**, then **\U0001f504 Refresh**."
-        )
-    st.error(msg)
-    st.code(rule, language="javascript")
 
 
 # ── FEATURE 1: PLATFORM KPIs ──────────────────────────────────────────────────
