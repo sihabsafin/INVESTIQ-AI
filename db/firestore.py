@@ -190,6 +190,13 @@ def save_analysis(uid: str, result: dict) -> Optional[str]:
             timeout=10,
         )
         if resp.status_code in (200, 201):
+            # Register user in admin-readable platform_stats registry
+            try:
+                email = st.session_state.get("user_email", "")
+                from db.admin_firestore import write_platform_stat
+                write_platform_stat(uid, email, result)
+            except Exception:
+                pass  # Never block save if stats write fails
             return doc_id
         else:
             print(f"Firestore save error {resp.status_code}: {resp.text[:200]}")
