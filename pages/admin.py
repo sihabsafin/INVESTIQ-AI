@@ -53,18 +53,43 @@ def render_admin():
         unsafe_allow_html=True,
     )
 
+    # ── Auto-refresh every 60 seconds ────────────────────────────────────────
+    import time as _time
+    if "admin_last_refresh" not in st.session_state:
+        st.session_state["admin_last_refresh"] = _time.time()
+    elapsed = _time.time() - st.session_state.get("admin_last_refresh", 0)
+    if elapsed > 60:
+        st.session_state.pop("admin_cache", None)
+        st.session_state["admin_last_refresh"] = _time.time()
+
     # Load data
     analyses = _load_admin_data()
 
     from db.admin_firestore import compute_platform_stats
     stats = compute_platform_stats(analyses)
 
-    # Refresh button
-    col_ref, _ = st.columns([1, 8])
+    # Refresh button + last updated
+    import time as _time
+    col_ref, col_ts, _ = st.columns([1, 2, 6])
     with col_ref:
         if st.button("🔄 Refresh", help="Reload all platform data"):
             st.session_state.pop("admin_cache", None)
+            st.session_state["admin_last_refresh"] = _time.time()
             st.rerun()
+    with col_ts:
+        last = st.session_state.get("admin_last_refresh", 0)
+        if last:
+            secs_ago = int(_time.time() - last)
+            if secs_ago < 60:
+                ts_str = f"{secs_ago}s ago"
+            else:
+                ts_str = f"{secs_ago // 60}m ago"
+            st.markdown(
+                f'<div style="font-size:0.68rem;color:#3A4F6A;padding-top:0.6rem;">'
+                f'Last updated: {ts_str} &nbsp;·&nbsp; '
+                f'Auto-refreshes every 60s</div>',
+                unsafe_allow_html=True,
+            )
 
     _divider()
 
